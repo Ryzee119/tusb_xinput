@@ -482,6 +482,7 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
 
 void xinputh_close(uint8_t dev_addr)
 {
+    TU_VERIFY(dev_addr <= CFG_TUH_DEVICE_MAX, );
     xinputh_device_t *xinput_dev = get_dev(dev_addr);
 
     for (uint8_t inst = 0; inst < xinput_dev->inst_count; inst++)
