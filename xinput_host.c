@@ -207,7 +207,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
         }
         tusb_desc_endpoint_t const *desc_ep = (tusb_desc_endpoint_t const *)p_desc;
         TU_ASSERT(TUSB_DESC_ENDPOINT == desc_ep->bDescriptorType);
-        TU_ASSERT(tuh_edpt_open(rhport, desc_ep));
+        TU_ASSERT(tuh_edpt_open(dev_addr, desc_ep));
         if (tu_edpt_dir(desc_ep->bEndpointAddress) == TUSB_DIR_OUT)
         {
             xid_itf->ep_out = desc_ep->bEndpointAddress;
