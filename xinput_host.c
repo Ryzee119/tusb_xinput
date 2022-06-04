@@ -63,7 +63,13 @@ bool tuh_xinput_receive_report(uint8_t dev_addr, uint8_t instance)
 {
     xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
     TU_VERIFY(usbh_edpt_claim(dev_addr, xid_itf->ep_in));
-    return usbh_edpt_xfer(dev_addr, xid_itf->ep_in, xid_itf->epin_buf, xid_itf->epin_size);
+
+    if ( !usbh_edpt_xfer(dev_addr, xid_itf->ep_in, xid_itf->epin_buf, xid_itf->epin_size) )
+    {
+        usbh_edpt_claim(dev_addr, xid_itf->ep_in);
+        return false;
+    }
+    return true;
 }
 
 bool tuh_xinput_send_report(uint8_t dev_addr, uint8_t instance, const uint8_t *txbuf, uint16_t len)
@@ -274,6 +280,8 @@ bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
     {
         tuh_xinput_mount_cb(dev_addr, instance, xid_itf);
     }
+
+    usbh_driver_set_config_complete(dev_addr, xid_itf->itf_num);
     return true;
 }
 
