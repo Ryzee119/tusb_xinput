@@ -13,15 +13,14 @@ void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t c
     xinputh_interface_t *xid_itf = (xinputh_interface_t *)report;
     TU_LOG1("XINPUT Got data on dev %02x, len %02x:\n", dev_addr, len);
     TU_LOG1_MEM(report, len, 4);
-    //Automatically received the next report
     tuh_xinput_receive_report(dev_addr, instance);
 }
 
 void tuh_xinput_mount_cb(uint8_t dev_addr, uint8_t instance, const xinputh_interface_t *xinput_itf)
 {
     TU_LOG1("XINPUT MOUNTED %02x %d\n", dev_addr, instance);
-    // If this is a Xbox 360 Wireless controller, dont register yet. Need to wait for a connection packet
-    // on the in pipe.
+    // If this is a Xbox 360 Wireless controller we need to wait for a connection packet
+    // on the in pipe before setting LEDs etc. So just start getting data until a controller is connected.
     if (xinput_itf->type == XBOX360_WIRELESS && xinput_itf->connected == false)
     {
         tuh_xinput_receive_report(dev_addr, instance);
