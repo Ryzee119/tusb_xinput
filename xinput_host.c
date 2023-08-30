@@ -416,6 +416,7 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
                 if (wButtons & (1 << 5)) pad->wButtons |= XINPUT_GAMEPAD_B;
                 if (wButtons & (1 << 6)) pad->wButtons |= XINPUT_GAMEPAD_X;
                 if (wButtons & (1 << 7)) pad->wButtons |= XINPUT_GAMEPAD_Y;
+                if (rdata[22] && 0x01) pad->wButtons   |= XINPUT_GAMEPAD_SHARE;
 
                 //Map the left and right triggers
                 pad->bLeftTrigger = (rdata[7] << 8 | rdata[6]) >> 2;
@@ -429,6 +430,14 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
 
                 xid_itf->new_pad_data = true;
             }          
+            // else if (rdata[0] == 0x07)
+            // {
+            //     if(rdata[4] == 0x01)
+            //         pad->wButtons |= XINPUT_GAMEPAD_GUIDE;
+            //     else
+            //         pad->wButtons &= ~XINPUT_GAMEPAD_GUIDE;
+            //     xid_itf->new_pad_data = true;
+            // }
         }
         else if (xid_itf->type == XBOXOG)
         {
