@@ -323,6 +323,7 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
                 if (wButtons & (1 << 7)) pad->wButtons |= XINPUT_GAMEPAD_RIGHT_THUMB;
                 if (wButtons & (1 << 8)) pad->wButtons |= XINPUT_GAMEPAD_LEFT_SHOULDER;
                 if (wButtons & (1 << 9)) pad->wButtons |= XINPUT_GAMEPAD_RIGHT_SHOULDER;
+                if (wButtons & (1 << 10)) pad->wButtons |= XINPUT_GAMEPAD_GUIDE;
                 if (wButtons & (1 << 12)) pad->wButtons |= XINPUT_GAMEPAD_A;
                 if (wButtons & (1 << 13)) pad->wButtons |= XINPUT_GAMEPAD_B;
                 if (wButtons & (1 << 14)) pad->wButtons |= XINPUT_GAMEPAD_X;
