@@ -1,20 +1,26 @@
 ## TinyUSB Xinput driver
 
-A xinput driver I use for a few of my personal projects.
+A USB Host xinput driver I use for a few of my personal projects.
 
-Currently TinyUSB doesn't support using custom drivers so needs to be modified like this commit: https://github.com/Ryzee119/tinyusb/commit/4a61b7ac61c7cfefb80a3abfd0891adf105c545c
-
-* Set `CFG_TUH_XINPUT` in your `tusb_config.h` to enable. This should be set to how many XINPUT controllers you want to support.
+* Add `CFG_TUH_XINPUT=1` in your `tusb_config.h` to enable. Where the number should be set to how many XINPUT controllers you want to support.
 * Increase CFG_TUH_ENUMERATION_BUFSIZE if using the Xbox 360 wireless receiver. It needs to be > 321 bytes.
 
 Implement these functions in your application code. Example code provided:
 ```
+#include "xinput_host.h"
+
+//Since https://github.com/hathach/tinyusb/pull/2222, we can add in custom vendor drivers easily
+usbh_class_driver_t const* usbh_app_driver_get_cb(uint8_t* driver_count){
+    *driver_count = 1;
+    return &usbh_xinput_driver;
+}
+
 void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *report, uint16_t len)
 {
     xinputh_interface_t *xid_itf = (xinputh_interface_t *)report;
     xinput_gamepad_t *p = &xid_itf->pad;
     const char* type_str;
-    switch (xid_itd->type)
+    switch (xid_itf->type)
     {
         case 1: type_str = "Xbox One";          break;
         case 2: type_str = "Xbox 360 Wireless"; break;

@@ -6,7 +6,7 @@
 #if (TUSB_OPT_HOST_ENABLED && CFG_TUH_XINPUT)
 
 #include "host/usbh.h"
-#include "host/usbh_classdriver.h"
+#include "host/usbh_pvt.h"
 #include "xinput_host.h"
 
 typedef struct
@@ -302,7 +302,6 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
     if (dir == TUSB_DIR_IN)
     {
         TU_LOG2("Get Report callback (%u, %u, %u bytes)\r\n", dev_addr, instance, xferred_bytes);
-        TU_LOG2_MEM(xid_itf->epin_buf, xferred_bytes, 2);
         if (xid_itf->type == XBOX360_WIRED)
         {
             #define GET_USHORT(a) (uint16_t)((a)[1] << 8 | (a)[0])
@@ -504,5 +503,23 @@ void xinputh_close(uint8_t dev_addr)
     }
     tu_memclr(xinput_dev, sizeof(xinputh_device_t));
 }
+
+#ifndef DRIVER_NAME
+#if CFG_TUSB_DEBUG >= CFG_TUH_LOG_LEVEL
+  #define DRIVER_NAME(_name)    .name = _name,
+#else
+  #define DRIVER_NAME(_name)
+#endif
+#endif
+
+usbh_class_driver_t const usbh_xinput_driver =
+{
+    DRIVER_NAME("XINPUT")
+    .init       = xinputh_init,
+    .open       = xinputh_open,
+    .set_config = xinputh_set_config,
+    .xfer_cb    = xinputh_xfer_cb,
+    .close      = xinputh_close
+};
 
 #endif
