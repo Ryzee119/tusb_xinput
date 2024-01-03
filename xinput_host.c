@@ -59,6 +59,33 @@ static void wait_for_tx_complete(uint8_t dev_addr, uint8_t ep_out)
         tuh_task();
 }
 
+static void xboxone_init( xinputh_interface_t *xid_itf, uint8_t dev_addr, uint8_t instance)
+{
+    uint16_t PID, VID;
+    tuh_vid_pid_get(dev_addr, &VID, &PID);
+
+    tuh_xinput_send_report(dev_addr, instance, xboxone_power_on, sizeof(xboxone_power_on));
+    wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+    tuh_xinput_send_report(dev_addr, instance, xboxone_s_init, sizeof(xboxone_s_init));
+    wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+
+    //Init packet for XBONE S/Elite controllers (return from bluetooth mode)
+    if (VID == 0x045e && (PID == 0x0b00))
+    {
+        tuh_xinput_send_report(dev_addr, instance, extra_input_packet_init, sizeof(extra_input_packet_init));
+        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+    }
+
+    //Required for PDP aftermarket controllers
+    if (VID == 0x0e6f)
+    {
+        tuh_xinput_send_report(dev_addr, instance, xboxone_pdp_led_on, sizeof(xboxone_pdp_led_on));
+        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+        tuh_xinput_send_report(dev_addr, instance, xboxone_pdp_auth, sizeof(xboxone_pdp_auth));
+        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+    }
+}
+
 bool tuh_xinput_receive_report(uint8_t dev_addr, uint8_t instance)
 {
     xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
@@ -251,29 +278,7 @@ bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
     }
     else if (xid_itf->type == XBOXONE)
     {
-        uint16_t PID, VID;
-        tuh_vid_pid_get(dev_addr, &VID, &PID);
-
-        tuh_xinput_send_report(dev_addr, instance, xboxone_start_input, sizeof(xboxone_start_input));
-        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
-
-        //Init packet for XBONE S/Elite controllers (return from bluetooth mode)
-        if (VID == 0x045e && (PID == 0x02ea || PID == 0x0b00 || PID == 0x0b12))
-        {
-            tuh_xinput_send_report(dev_addr, instance, xboxone_s_init, sizeof(xboxone_s_init));
-            wait_for_tx_complete(dev_addr, xid_itf->ep_out);
-        }
-
-        //Required for PDP aftermarket controllers
-        if (VID == 0x0e6f)
-        {
-            tuh_xinput_send_report(dev_addr, instance, xboxone_pdp_init1, sizeof(xboxone_pdp_init1));
-            wait_for_tx_complete(dev_addr, xid_itf->ep_out);
-            tuh_xinput_send_report(dev_addr, instance, xboxone_pdp_init2, sizeof(xboxone_pdp_init2));
-            wait_for_tx_complete(dev_addr, xid_itf->ep_out);
-            tuh_xinput_send_report(dev_addr, instance, xboxone_pdp_init3, sizeof(xboxone_pdp_init3));
-            wait_for_tx_complete(dev_addr, xid_itf->ep_out);
-        }
+        xboxone_init(xid_itf, dev_addr, instance);
     }
 
     if (tuh_xinput_mount_cb)
@@ -395,7 +400,7 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
         }
         else if (xid_itf->type == XBOXONE)
         {
-            if (rdata[0] == 0x20)
+            if (rdata[0] == GIP_CMD_INPUT)
             {
                 tu_memclr(pad, sizeof(xinput_gamepad_t));
                 uint16_t wButtons = rdata[5] << 8 | rdata[4];
@@ -428,15 +433,22 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
                 pad->sThumbRY = rdata[17] << 8 | rdata[16];
 
                 xid_itf->new_pad_data = true;
-            }          
-            // else if (rdata[0] == 0x07)
-            // {
-            //     if(rdata[4] == 0x01)
-            //         pad->wButtons |= XINPUT_GAMEPAD_GUIDE;
-            //     else
-            //         pad->wButtons &= ~XINPUT_GAMEPAD_GUIDE;
-            //     xid_itf->new_pad_data = true;
-            // }
+            }
+            else if (rdata[0] == GIP_CMD_VIRTUAL_KEY)
+            {
+                if (rdata[4] == 0x01 && !(pad->wButtons & XINPUT_GAMEPAD_GUIDE)) {
+                    xid_itf->new_pad_data = true;
+                    pad->wButtons |= XINPUT_GAMEPAD_GUIDE;
+                }
+                else if (rdata[4] == 0x00 && (pad->wButtons & XINPUT_GAMEPAD_GUIDE)) {
+                    xid_itf->new_pad_data = true;
+                    pad->wButtons &= ~XINPUT_GAMEPAD_GUIDE;
+                }
+            }
+            else if (rdata[0] == GIP_CMD_ANNOUNCE)
+            {
+                xboxone_init(xid_itf, dev_addr, instance);
+            }
         }
         else if (xid_itf->type == XBOXOG)
         {
@@ -474,9 +486,14 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
 
                 xid_itf->new_pad_data = true;
             }
-        } 
-        tuh_xinput_report_received_cb(dev_addr, instance, (const uint8_t *)xid_itf, sizeof(xinputh_interface_t));
-        xid_itf->new_pad_data = false;
+        }
+        if (xid_itf->new_pad_data)
+        {
+            tuh_xinput_report_received_cb(dev_addr, instance, (const uint8_t *)xid_itf, sizeof(xinputh_interface_t));
+            xid_itf->new_pad_data = false;
+        } else {
+            tuh_xinput_receive_report(dev_addr, instance);
+        }
     }
     else
     {
