@@ -90,60 +90,6 @@ bool tuh_xinput_send_report(uint8_t dev_addr, uint8_t instance, const uint8_t *t
 bool tuh_xinput_set_led(uint8_t dev_addr, uint8_t instance, uint8_t quadrant, bool block);
 bool tuh_xinput_set_rumble(uint8_t dev_addr, uint8_t instance, uint8_t lValue, uint8_t rValue, bool block);
 
-//Wired 360 commands
-static const uint8_t xbox360_wired_rumble[] = {0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const uint8_t xbox360_wired_led[] = {0x01, 0x03, 0x00};
-
-//Xbone one
-#define GIP_CMD_ACK 0x01
-#define GIP_CMD_ANNOUNCE 0x02
-#define GIP_CMD_IDENTIFY 0x04
-#define GIP_CMD_POWER 0x05
-#define GIP_CMD_AUTHENTICATE 0x06
-#define GIP_CMD_VIRTUAL_KEY 0x07
-#define GIP_CMD_RUMBLE 0x09
-#define GIP_CMD_LED 0x0a
-#define GIP_CMD_FIRMWARE 0x0c
-#define GIP_CMD_INPUT 0x20
-#define GIP_SEQ0 0x00
-#define GIP_OPT_ACK 0x10
-#define GIP_OPT_INTERNAL 0x20
-#define GIP_PL_LEN(N) (N)
-#define GIP_PWR_ON 0x00
-#define GIP_PWR_SLEEP 0x01
-#define GIP_PWR_OFF 0x04
-#define GIP_PWR_RESET 0x07
-#define GIP_LED_ON 0x01
-#define BIT(n) (1UL << (n))
-#define GIP_MOTOR_R  BIT(0)
-#define GIP_MOTOR_L  BIT(1)
-#define GIP_MOTOR_RT BIT(2)
-#define GIP_MOTOR_LT BIT(3)
-#define GIP_MOTOR_ALL (GIP_MOTOR_R | GIP_MOTOR_L | GIP_MOTOR_RT | GIP_MOTOR_LT)
-static const uint8_t xboxone_power_on[] = {GIP_CMD_POWER, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(1), GIP_PWR_ON};
-static const uint8_t xboxone_s_init[] = {GIP_CMD_POWER, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(15), 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0x53, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const uint8_t xboxone_s_led_init[] = {GIP_CMD_LED, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(3), 0x00, 0x01, 0x14};
-static const uint8_t extra_input_packet_init[] = {0x4d, 0x10, GIP_SEQ0, 0x02, 0x07, 0x00};
-static const uint8_t xboxone_pdp_led_on[] = {GIP_CMD_LED, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(3), 0x00, GIP_LED_ON, 0x14};
-static const uint8_t xboxone_pdp_auth[] = {GIP_CMD_AUTHENTICATE, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(2), 0x01, 0x00};
-static const uint8_t xboxone_rumble[] = {0x09, 0x00, 0x00, 0x09, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEB};
-
-//Wireless 360 commands
-static const uint8_t xbox360w_led[] = {0x00, 0x00, 0x08, 0x40};
-//Sending 0x00, 0x00, 0x08, 0x00 will permanently disable rumble until you do this:
-static const uint8_t xbox360w_rumble_enable[] = {0x00, 0x00, 0x08, 0x01};
-static const uint8_t xbox360w_rumble[] = {0x00, 0x01, 0x0F, 0xC0, 0x00, 0x00};
-static const uint8_t xbox360w_inquire_present[] = {0x08, 0x00, 0x0F, 0xC0};
-static const uint8_t xbox360w_controller_info[] = {0x00, 0x00, 0x00, 0x40};
-static const uint8_t xbox360w_unknown[] = {0x00, 0x00, 0x02, 0x80};
-static const uint8_t xbox360w_power_off[] = {0x00, 0x00, 0x08, 0xC0};
-static const uint8_t xbox360w_chatpad_init[] = {0x00, 0x00, 0x0C, 0x1B};
-static const uint8_t xbox360w_chatpad_keepalive1[] = {0x00, 0x00, 0x0C, 0x1F};
-static const uint8_t xbox360w_chatpad_keepalive2[] = {0x00, 0x00, 0x0C, 0x1E};
-
-//Original Xbox
-static const uint8_t xboxog_rumble[] = {0x00, 0x06, 0x00, 0x00, 0x00, 0x00};
-
 #ifdef __cplusplus
 }
 #endif
