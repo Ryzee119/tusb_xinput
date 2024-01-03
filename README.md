@@ -3,7 +3,7 @@
 A USB Host xinput driver I use for a few of my personal projects.
 
 * Add `CFG_TUH_XINPUT=1` in your `tusb_config.h` to enable. Where the number should be set to how many XINPUT controllers you want to support.
-* Increase CFG_TUH_ENUMERATION_BUFSIZE if using the Xbox 360 wireless receiver. It needs to be > 321 bytes.
+* Increase `CFG_TUH_ENUMERATION_BUFSIZE` if using the Xbox 360 wireless receiver. It needs to be > 321 bytes.
 
 Implement these functions in your application code. Example code provided:
 ```
