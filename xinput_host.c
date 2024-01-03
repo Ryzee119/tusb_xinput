@@ -146,7 +146,7 @@ bool tuh_xinput_receive_report(uint8_t dev_addr, uint8_t instance)
 
     if ( !usbh_edpt_xfer(dev_addr, xid_itf->ep_in, xid_itf->epin_buf, xid_itf->epin_size) )
     {
-        usbh_edpt_claim(dev_addr, xid_itf->ep_in);
+        usbh_edpt_release(dev_addr, xid_itf->ep_in);
         return false;
     }
     return true;
@@ -160,7 +160,13 @@ bool tuh_xinput_send_report(uint8_t dev_addr, uint8_t instance, const uint8_t *t
     TU_VERIFY(usbh_edpt_claim(dev_addr, xid_itf->ep_out));
 
     memcpy(xid_itf->epout_buf, txbuf, len);
-    return usbh_edpt_xfer(dev_addr, xid_itf->ep_out, xid_itf->epout_buf, len);
+
+    if ( !usbh_edpt_xfer(dev_addr, xid_itf->ep_out, xid_itf->epout_buf, len))
+    {
+        usbh_edpt_release(dev_addr, xid_itf->ep_out);
+        return false;
+    }
+    return true;
 }
 
 bool tuh_xinput_set_led(uint8_t dev_addr, uint8_t instance, uint8_t quadrant, bool block)
@@ -213,8 +219,8 @@ bool tuh_xinput_set_rumble(uint8_t dev_addr, uint8_t instance, uint8_t lValue, u
         break;
     case XBOXONE:
         memcpy(txbuf, xboxone_rumble, sizeof(xboxone_rumble));
-        txbuf[8] = lValue / 2.6f; //Scale is 0 to 100
-        txbuf[9] = rValue / 2.6f; //Scale is 0 to 100
+        txbuf[8] = lValue / 2; // 0 - 128
+        txbuf[9] = rValue / 2; // 0 - 128
         len = sizeof(xboxone_rumble);
         break;
     case XBOXOG:
