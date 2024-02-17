@@ -9,6 +9,9 @@
 #include "host/usbh_pvt.h"
 #include "xinput_host.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-const-variable"
+
 //Wired 360 commands
 static const uint8_t xbox360_wired_rumble[] = {0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static const uint8_t xbox360_wired_led[] = {0x01, 0x03, 0x00};
@@ -62,6 +65,8 @@ static const uint8_t xbox360w_chatpad_keepalive2[] = {0x00, 0x00, 0x0C, 0x1E};
 
 //Original Xbox
 static const uint8_t xboxog_rumble[] = {0x00, 0x06, 0x00, 0x00, 0x00, 0x00};
+
+#pragma GCC diagnostic pop
 
 typedef struct
 {
@@ -351,17 +356,28 @@ bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
 
 bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes)
 {
-    if (result != XFER_RESULT_SUCCESS)
-    {
-        TU_LOG1("Error: %d\n", result);
-        return false;
-    }
-
     uint8_t const dir = tu_edpt_dir(ep_addr);
     uint8_t const instance = get_instance_id_by_epaddr(dev_addr, ep_addr);
     xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
     xinput_gamepad_t *pad = &xid_itf->pad;
     uint8_t *rdata = xid_itf->epin_buf;
+
+    xid_itf->last_xfer_result = result;
+    xid_itf->last_xferred_bytes = xferred_bytes;
+
+    // On transfer error, bail early but notify the application
+    if (result != XFER_RESULT_SUCCESS)
+    {
+        if (dir == TUSB_DIR_IN)
+        {
+            tuh_xinput_report_received_cb(dev_addr, instance, xid_itf, sizeof(xinputh_interface_t));
+        }
+        else if (tuh_xinput_report_sent_cb)
+        {
+            tuh_xinput_report_sent_cb(dev_addr, instance, xid_itf->epout_buf, xferred_bytes);
+        }
+        return false;
+    }
 
     if (dir == TUSB_DIR_IN)
     {
@@ -548,7 +564,7 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
         }
         if (xid_itf->new_pad_data)
         {
-            tuh_xinput_report_received_cb(dev_addr, instance, (const uint8_t *)xid_itf, sizeof(xinputh_interface_t));
+            tuh_xinput_report_received_cb(dev_addr, instance, xid_itf, sizeof(xinputh_interface_t));
             xid_itf->new_pad_data = false;
         } else {
             tuh_xinput_receive_report(dev_addr, instance);

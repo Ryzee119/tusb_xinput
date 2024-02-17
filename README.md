@@ -15,27 +15,30 @@ usbh_class_driver_t const* usbh_app_driver_get_cb(uint8_t* driver_count){
     return &usbh_xinput_driver;
 }
 
-void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *report, uint16_t len)
+void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, xinputh_interface_t const* xid_itf, uint16_t len)
 {
-    xinputh_interface_t *xid_itf = (xinputh_interface_t *)report;
-    xinput_gamepad_t *p = &xid_itf->pad;
+    const xinput_gamepad_t *p = &xid_itf->pad;
     const char* type_str;
-    switch (xid_itf->type)
-    {
-        case 1: type_str = "Xbox One";          break;
-        case 2: type_str = "Xbox 360 Wireless"; break;
-        case 3: type_str = "Xbox 360 Wired";    break;
-        case 4: type_str = "Xbox OG";           break;
-        default: type_str = "Unknown";
-    }
 
-    if (xid_itf->connected && xid_itf->new_pad_data)
+    if (xid_itf->last_xfer_result == XFER_RESULT_SUCCESS)
     {
-        TU_LOG1("[%02x, %02x], Type: %s, Buttons %04x, LT: %02x RT: %02x, LX: %d, LY: %d, RX: %d, RY: %d\n",
-             dev_addr, instance, type_str, p->wButtons, p->bLeftTrigger, p->bRightTrigger, p->sThumbLX, p->sThumbLY, p->sThumbRX, p->sThumbRY);
+        switch (xid_itf->type)
+        {
+            case 1: type_str = "Xbox One";          break;
+            case 2: type_str = "Xbox 360 Wireless"; break;
+            case 3: type_str = "Xbox 360 Wired";    break;
+            case 4: type_str = "Xbox OG";           break;
+            default: type_str = "Unknown";
+        }
 
-        //How to check specific buttons
-        if (p->wButtons & XINPUT_GAMEPAD_A) TU_LOG1("You are pressing A\n");
+        if (xid_itf->connected && xid_itf->new_pad_data)
+        {
+            TU_LOG1("[%02x, %02x], Type: %s, Buttons %04x, LT: %02x RT: %02x, LX: %d, LY: %d, RX: %d, RY: %d\n",
+                dev_addr, instance, type_str, p->wButtons, p->bLeftTrigger, p->bRightTrigger, p->sThumbLX, p->sThumbLY, p->sThumbRX, p->sThumbRY);
+
+            //How to check specific buttons
+            if (p->wButtons & XINPUT_GAMEPAD_A) TU_LOG1("You are pressing A\n");
+        }
     }
     tuh_xinput_receive_report(dev_addr, instance);
 }

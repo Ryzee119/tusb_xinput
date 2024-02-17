@@ -77,6 +77,9 @@ typedef struct
 
     uint8_t epin_buf[CFG_TUH_XINPUT_EPIN_BUFSIZE];
     uint8_t epout_buf[CFG_TUH_XINPUT_EPOUT_BUFSIZE];
+
+    xfer_result_t last_xfer_result;
+    uint32_t last_xferred_bytes;
 } xinputh_interface_t;
 
 extern usbh_class_driver_t const usbh_xinput_driver;
@@ -88,10 +91,10 @@ extern usbh_class_driver_t const usbh_xinput_driver;
  *
  * @param dev_addr Device address of the XInput device.
  * @param instance Instance of the XInput device.
- * @param report Pointer to the received report data.
+ * @param xid_itf Pointer to the xif_itf structure containing the received report data and transfer result
  * @param len Length of the received report data.
  */
-void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len);
+void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, xinputh_interface_t const* xid_itf, uint16_t len);
 
 /**
  * @brief Weak callback function called when a report is sent to an XInput device.
