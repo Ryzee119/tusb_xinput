@@ -64,3 +64,23 @@ void tuh_xinput_umount_cb(uint8_t dev_addr, uint8_t instance)
     TU_LOG1("XINPUT UNMOUNTED %02x %d\n", dev_addr, instance);
 }
 ```
+
+### CMake Build
+
+Easily link this library with CMake by adding this repo as a git submodule:
+```
+git submodule add https://github.com/Ryzee119/tusb_xinput.git src/lib/tusb_xinput
+
+git submodule init
+git submodule update
+```
+
+And then adding the following to your project's `CMakeLists.txt` config:
+```
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/tusb_xinput xinput_host)
+
+target_link_libraries(you_project_name PRIVATE
+    ...
+    xinput_host
+)
+```
