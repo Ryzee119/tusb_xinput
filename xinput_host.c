@@ -49,6 +49,7 @@ static const uint8_t extra_input_packet_init[] = {0x4d, 0x10, GIP_SEQ0, 0x02, 0x
 static const uint8_t xboxone_pdp_led_on[] = {GIP_CMD_LED, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(3), 0x00, GIP_LED_ON, 0x14};
 static const uint8_t xboxone_pdp_auth[] = {GIP_CMD_AUTHENTICATE, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(2), 0x01, 0x00};
 static const uint8_t xboxone_rumble[] = {GIP_CMD_RUMBLE, 0x00, 0x00, GIP_PL_LEN(9), 0x00, GIP_MOTOR_ALL, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF};
+static const uint8_t xboxone_ack[] = {GIP_CMD_ACK, GIP_OPT_INTERNAL, GIP_SEQ0, GIP_PL_LEN(9), 0x00, 0x00, GIP_OPT_INTERNAL, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 //Wireless 360 commands
 static const uint8_t xbox360w_led[] = {0x00, 0x00, 0x08, 0x40};
@@ -142,6 +143,17 @@ static void xboxone_init( xinputh_interface_t *xid_itf, uint8_t dev_addr, uint8_
         tuh_xinput_send_report(dev_addr, instance, xboxone_pdp_auth, sizeof(xboxone_pdp_auth));
         wait_for_tx_complete(dev_addr, xid_itf->ep_out);
     }
+}
+
+static void xboxone_send_ack(uint8_t dev_addr, uint8_t instance, const uint8_t *rdata)
+{
+    uint8_t txbuf[sizeof(xboxone_ack)];
+    memcpy(txbuf, xboxone_ack, sizeof(xboxone_ack));
+    txbuf[2] = rdata[2];
+    txbuf[5] = rdata[0];
+    txbuf[6] = rdata[1] & GIP_OPT_INTERNAL;
+    txbuf[7] = rdata[3];
+    tuh_xinput_send_report(dev_addr, instance, txbuf, sizeof(txbuf));
 }
 
 bool tuh_xinput_receive_report(uint8_t dev_addr, uint8_t instance)
@@ -479,7 +491,10 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
         {
             if (rdata[0] == GIP_CMD_INPUT)
             {
+                // Guide button state arrives separately via GIP_CMD_VIRTUAL_KEY.
+                uint16_t guide = pad->wButtons & XINPUT_GAMEPAD_GUIDE;
                 tu_memclr(pad, sizeof(xinput_gamepad_t));
+                pad->wButtons = guide;
                 uint16_t wButtons = rdata[5] << 8 | rdata[4];
 
                 //Map digital buttons
@@ -511,13 +526,20 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
 
                 xid_itf->new_pad_data = true;
             }
-            else if (rdata[0] == GIP_CMD_VIRTUAL_KEY)
+            else if (rdata[0] == GIP_CMD_VIRTUAL_KEY && xferred_bytes >= 5)
             {
-                if (rdata[4] == 0x01 && !(pad->wButtons & XINPUT_GAMEPAD_GUIDE)) {
+                if (rdata[1] & GIP_OPT_ACK)
+                {
+                    xboxone_send_ack(dev_addr, instance, rdata);
+                }
+
+                if ((rdata[4] & 0x03) && !(pad->wButtons & XINPUT_GAMEPAD_GUIDE))
+                {
                     xid_itf->new_pad_data = true;
                     pad->wButtons |= XINPUT_GAMEPAD_GUIDE;
                 }
-                else if (rdata[4] == 0x00 && (pad->wButtons & XINPUT_GAMEPAD_GUIDE)) {
+                else if (!(rdata[4] & 0x03) && (pad->wButtons & XINPUT_GAMEPAD_GUIDE))
+                {
                     xid_itf->new_pad_data = true;
                     pad->wButtons &= ~XINPUT_GAMEPAD_GUIDE;
                 }
